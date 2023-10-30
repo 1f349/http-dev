@@ -2,12 +2,10 @@ package main
 
 import (
 	"flag"
-	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -32,24 +30,23 @@ func main() {
 			if hostFlag != "" {
 				r.Out.Host = hostFlag
 			}
+			r.Out.Header = r.In.Header.Clone()
 		},
-		ModifyResponse: func(response *http.Response) error {
+		ModifyResponse: func(resp *http.Response) error {
 			if !allowCors {
 				return nil
 			}
 
-			response.Header.Add("Access-Control-Allow-Origin", "*")
-			response.Header.Add("Access-Control-Allow-Credentials", "true")
-			response.Header.Add("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-			response.Header.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+			resp.Header.Set("Access-Control-Allow-Origin", "*")
+			resp.Header.Set("Access-Control-Allow-Credentials", "true")
+			resp.Header.Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+			resp.Header.Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 
-			if response.Request.Method == "OPTIONS" {
-				_ = response.Body.Close()
-				response.Header.Set("Content-Type", "text/plain; charset=utf-8")
-				response.Header.Set("X-Content-Type-Options", "nosniff")
-				response.StatusCode = http.StatusNoContent
-				response.Status = http.StatusText(http.StatusNoContent)
-				response.Body = io.NopCloser(strings.NewReader("No Content\n"))
+			if resp.Request.Method == http.MethodOptions {
+				resp.Header.Set("Content-Type", "text/plain; charset=utf-8")
+				resp.Header.Set("X-Content-Type-Options", "nosniff")
+				resp.StatusCode = http.StatusNoContent
+				resp.Status = http.StatusText(http.StatusNoContent)
 			}
 			return nil
 		},
